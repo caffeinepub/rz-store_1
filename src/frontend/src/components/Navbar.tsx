@@ -1,17 +1,19 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   MessageSquare,
+  ShieldCheck,
   ShoppingCart,
   Sparkles,
-  Star,
   Store,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useActor } from "../hooks/useActor";
 import { useCart } from "../hooks/useQueries";
 
 export default function Navbar() {
   const { data: cart } = useCart();
+  const { actor, isFetching } = useActor();
   const cartCount =
     cart?.reduce((sum, item) => sum + Number(item.quantity), 0) ?? 0;
   const routerState = useRouterState();
@@ -19,6 +21,7 @@ export default function Navbar() {
 
   const [prevCount, setPrevCount] = useState(cartCount);
   const [badgePulse, setBadgePulse] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (cartCount > prevCount) {
@@ -29,9 +32,26 @@ export default function Navbar() {
     setPrevCount(cartCount);
   }, [cartCount, prevCount]);
 
+  useEffect(() => {
+    if (!actor || isFetching) return;
+    let cancelled = false;
+    actor
+      .isCallerAdmin()
+      .then((result) => {
+        if (!cancelled) setIsAdmin(result);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [actor, isFetching]);
+
   const navLinks = [
     { to: "/store", label: "Store", icon: Store },
     { to: "/feedback", label: "Feedback", icon: MessageSquare },
+    ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
 
   return (

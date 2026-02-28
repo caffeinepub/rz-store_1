@@ -16,20 +16,24 @@ const PRODUCT_IMAGES: Record<string, string> = {
   headphone: "/assets/generated/product-headphones.dim_400x400.png",
   necklace: "/assets/generated/product-necklace.dim_400x400.png",
   jewel: "/assets/generated/product-necklace.dim_400x400.png",
+  jewelry: "/assets/generated/product-necklace.dim_400x400.png",
   wallet: "/assets/generated/product-wallet.dim_400x400.png",
   perfume: "/assets/generated/product-perfume.dim_400x400.png",
   fragrance: "/assets/generated/product-perfume.dim_400x400.png",
+  ring: "/assets/generated/product-rings.dim_400x400.png",
+  rings: "/assets/generated/product-rings.dim_400x400.png",
+  combo: "/assets/generated/product-rings.dim_400x400.png",
 };
 
 function getProductImage(product: Product): string {
-  if (product.imageUrl?.startsWith("http")) {
-    return product.imageUrl;
+  const url = product.imageUrl ?? "";
+  // Return any valid local asset or external URL
+  if (url.startsWith("http") || url.startsWith("/assets/")) {
+    return url;
   }
-  const nameKey = Object.keys(PRODUCT_IMAGES).find(
-    (k) =>
-      product.name.toLowerCase().includes(k) ||
-      product.category.toLowerCase().includes(k),
-  );
+  // Fall back to keyword matching on name and category
+  const search = `${product.name} ${product.category}`.toLowerCase();
+  const nameKey = Object.keys(PRODUCT_IMAGES).find((k) => search.includes(k));
   return nameKey
     ? PRODUCT_IMAGES[nameKey]
     : "/assets/generated/rz-store-hero.dim_600x600.png";
@@ -72,13 +76,20 @@ function ProductCard({
     }
   };
 
-  const handleBuyNow = async () => {
-    try {
-      await addToCart.mutateAsync({ productId: product.id, quantity: 1n });
-      navigate({ to: "/checkout" });
-    } catch {
-      toast.error("Failed to process. Please try again.");
-    }
+  const handleBuyNow = () => {
+    // Store product in sessionStorage so checkout can read it without requiring login
+    sessionStorage.setItem(
+      "buyNowProduct",
+      JSON.stringify({
+        id: product.id,
+        name: product.name,
+        price: product.price.toString(),
+        imageUrl: product.imageUrl,
+        category: product.category,
+        quantity: 1,
+      }),
+    );
+    navigate({ to: "/checkout" });
   };
 
   const catColor = CATEGORY_COLORS[product.category] ?? CATEGORY_COLORS.default;
@@ -92,7 +103,13 @@ function ProductCard({
         duration: 0.5,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="product-card glass-card rounded-2xl overflow-hidden flex flex-col group"
+      className="product-card glass-card rounded-2xl overflow-hidden flex flex-col group cursor-pointer"
+      onClick={() =>
+        navigate({
+          to: "/product/$productId",
+          params: { productId: product.id },
+        })
+      }
     >
       {/* Image */}
       <div className="relative overflow-hidden" style={{ height: "220px" }}>
@@ -182,7 +199,10 @@ function ProductCard({
         <div className="flex gap-2 mt-auto">
           <button
             type="button"
-            onClick={handleAddToCart}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddToCart();
+            }}
             disabled={addToCart.isPending || Number(product.stock) === 0}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-sm font-sans font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-95"
             style={{
@@ -200,7 +220,10 @@ function ProductCard({
           </button>
           <button
             type="button"
-            onClick={handleBuyNow}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBuyNow();
+            }}
             disabled={addToCart.isPending || Number(product.stock) === 0}
             className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-sans font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-95"
             style={{

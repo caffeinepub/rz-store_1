@@ -117,7 +117,6 @@ export interface backendInterface {
     placeOrder(paymentMethod: string): Promise<string>;
     removeFromCart(productId: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    seedProducts(): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     submitFeedback(name: string, rating: bigint, comment: string, productId: string | null): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;

@@ -200,7 +200,6 @@ export interface backendInterface {
     placeOrder(paymentMethod: string): Promise<string>;
     removeFromCart(productId: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    seedProducts(): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     submitFeedback(name: string, rating: bigint, comment: string, productId: string | null): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
@@ -514,20 +513,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
-            return result;
-        }
-    }
-    async seedProducts(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.seedProducts();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.seedProducts();
             return result;
         }
     }

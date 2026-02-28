@@ -21,7 +21,12 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useCart, usePlaceOrder, useProducts } from "../hooks/useQueries";
+import {
+  useAddToCart,
+  useCart,
+  usePlaceOrder,
+  useProducts,
+} from "../hooks/useQueries";
 
 function formatPrice(paise: bigint): string {
   const rupees = Number(paise) / 100;
@@ -295,11 +300,36 @@ function SuccessScreen({ orderId }: { orderId: string }) {
   );
 }
 
+interface BuyNowProduct {
+  id: string;
+  name: string;
+  price: string; // stored as string from bigint
+  imageUrl: string;
+  category: string;
+  quantity: number;
+}
+
+function readBuyNowProduct(): BuyNowProduct | null {
+  try {
+    const raw = sessionStorage.getItem("buyNowProduct");
+    if (!raw) return null;
+    return JSON.parse(raw) as BuyNowProduct;
+  } catch {
+    return null;
+  }
+}
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { data: cartItems } = useCart();
   const { data: products } = useProducts();
   const placeOrder = usePlaceOrder();
+  const addToCart = useAddToCart();
+
+  // Buy Now: product passed directly from store/product page
+  const [buyNowProduct] = useState<BuyNowProduct | null>(() =>
+    readBuyNowProduct(),
+  );
 
   const [activeTab, setActiveTab] = useState<PaymentTab>("upi");
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -315,10 +345,31 @@ export default function CheckoutPage() {
   // Net banking
   const [bank, setBank] = useState("");
 
-  const cartWithProducts = (cartItems ?? []).map((item) => ({
-    ...item,
-    product: products?.find((p) => p.id === item.productId),
-  }));
+  // If Buy Now product exists, show only that; otherwise show cart
+  const buyNowItems = buyNowProduct
+    ? [
+        {
+          productId: buyNowProduct.id,
+          quantity: BigInt(buyNowProduct.quantity),
+          product: {
+            id: buyNowProduct.id,
+            name: buyNowProduct.name,
+            price: BigInt(buyNowProduct.price),
+            imageUrl: buyNowProduct.imageUrl,
+            category: buyNowProduct.category,
+            description: "",
+            stock: 999n,
+          },
+        },
+      ]
+    : [];
+
+  const cartWithProducts = buyNowProduct
+    ? buyNowItems
+    : (cartItems ?? []).map((item) => ({
+        ...item,
+        product: products?.find((p) => p.id === item.productId),
+      }));
 
   const total = cartWithProducts.reduce((sum, item) => {
     if (!item.product) return sum;
@@ -350,10 +401,19 @@ export default function CheckoutPage() {
     }
 
     try {
+      // If Buy Now flow, add the product to cart first, then place order
+      if (buyNowProduct) {
+        await addToCart.mutateAsync({
+          productId: buyNowProduct.id,
+          quantity: BigInt(buyNowProduct.quantity),
+        });
+      }
       const id = await placeOrder.mutateAsync(paymentMethod);
+      // Clear Buy Now product after successful order
+      sessionStorage.removeItem("buyNowProduct");
       setOrderId(id);
     } catch {
-      toast.error("Failed to place order. Please try again.");
+      toast.error("Please log in to place your order.");
     }
   };
 
@@ -408,11 +468,18 @@ export default function CheckoutPage() {
             {/* Back button */}
             <button
               type="button"
-              onClick={() => navigate({ to: "/cart" })}
+              onClick={() => {
+                if (buyNowProduct) {
+                  sessionStorage.removeItem("buyNowProduct");
+                  navigate({ to: "/store" });
+                } else {
+                  navigate({ to: "/cart" });
+                }
+              }}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-sans transition-colors mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Cart
+              {buyNowProduct ? "Back to Store" : "Back to Cart"}
             </button>
 
             {/* Payment method tabs */}

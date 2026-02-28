@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CartItem, Feedback, Product } from "../backend.d";
+import type { CartItem, Feedback, Order, Product } from "../backend.d";
 import { useActor } from "./useActor";
 
 /* ---- Products ---- */
@@ -9,15 +9,23 @@ export function useProducts() {
     queryKey: ["products"],
     queryFn: async () => {
       if (!actor) return [];
-      const products = await actor.getAllProducts();
-      if (products.length === 0) {
-        await actor.seedProducts();
-        return await actor.getAllProducts();
-      }
-      return products;
+      return await actor.getAllProducts();
     },
     enabled: !!actor && !isFetching,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+/* ---- Single Product ---- */
+export function useProduct(productId: string) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Product | null>({
+    queryKey: ["product", productId],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getProduct(productId);
+    },
+    enabled: !!actor && !isFetching && !!productId,
   });
 }
 
@@ -147,6 +155,34 @@ export function useSubmitFeedback() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feedback"] });
+    },
+  });
+}
+
+/* ---- All Orders (Admin) ---- */
+export function useAllOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Order[]>({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+/* ---- Add Product (Admin) ---- */
+export function useAddProduct() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (product: Product) => {
+      if (!actor) throw new Error("Not connected");
+      await actor.addProduct(product);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 }

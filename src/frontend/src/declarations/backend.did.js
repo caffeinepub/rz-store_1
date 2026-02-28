@@ -123,7 +123,6 @@ export const idlService = IDL.Service({
   'placeOrder' : IDL.Func([IDL.Text], [IDL.Text], []),
   'removeFromCart' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'seedProducts' : IDL.Func([], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'submitFeedback' : IDL.Func(
       [IDL.Text, IDL.Nat, IDL.Text, IDL.Opt(IDL.Text)],
@@ -250,7 +249,6 @@ export const idlFactory = ({ IDL }) => {
     'placeOrder' : IDL.Func([IDL.Text], [IDL.Text], []),
     'removeFromCart' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'seedProducts' : IDL.Func([], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
     'submitFeedback' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Text, IDL.Opt(IDL.Text)],

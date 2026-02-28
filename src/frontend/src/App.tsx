@@ -9,9 +9,11 @@ import {
 } from "@tanstack/react-router";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
+import AdminPage from "./pages/AdminPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import FeedbackPage from "./pages/FeedbackPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import StorePage from "./pages/StorePage";
 import WelcomePage from "./pages/WelcomePage";
 
@@ -90,6 +92,18 @@ const feedbackRoute = createRoute({
   component: FeedbackPage,
 });
 
+const productDetailRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: "/product/$productId",
+  component: ProductDetailPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
 /* ---- Router ---- */
 const routeTree = rootRoute.addChildren([
   welcomeRoute,
@@ -98,6 +112,8 @@ const routeTree = rootRoute.addChildren([
     cartRoute,
     checkoutRoute,
     feedbackRoute,
+    productDetailRoute,
+    adminRoute,
   ]),
 ]);
 

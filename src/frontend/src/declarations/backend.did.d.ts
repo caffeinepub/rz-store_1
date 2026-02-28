@@ -108,7 +108,6 @@ export interface _SERVICE {
   'placeOrder' : ActorMethod<[string], string>,
   'removeFromCart' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'seedProducts' : ActorMethod<[], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'submitFeedback' : ActorMethod<
     [string, bigint, string, [] | [string]],

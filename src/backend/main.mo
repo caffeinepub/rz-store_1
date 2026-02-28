@@ -12,6 +12,8 @@ import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
+
+
 actor {
   // Types
   public type Product = {
@@ -270,110 +272,6 @@ actor {
     feedbacks.toArray();
   };
 
-  // Seed Data - Admin only
-  public shared ({ caller }) func seedProducts() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can seed products");
-    };
-
-    let sampleProducts : [Product] = [
-      {
-        id = "prod-1";
-        name = "Wireless Headphones";
-        description = "Premium noise-cancelling wireless headphones with 30-hour battery life";
-        price = 799900; // ₹7999.00
-        imageUrl = "https://example.com/headphones.jpg";
-        category = "electronics";
-        stock = 50;
-      },
-      {
-        id = "prod-2";
-        name = "Smart Watch";
-        description = "Fitness tracking smartwatch with heart rate monitor";
-        price = 1299900; // ₹12999.00
-        imageUrl = "https://example.com/smartwatch.jpg";
-        category = "electronics";
-        stock = 30;
-      },
-      {
-        id = "prod-3";
-        name = "Cotton T-Shirt";
-        description = "Comfortable 100% cotton t-shirt available in multiple colors";
-        price = 49900; // ₹499.00
-        imageUrl = "https://example.com/tshirt.jpg";
-        category = "clothing";
-        stock = 100;
-      },
-      {
-        id = "prod-4";
-        name = "Denim Jeans";
-        description = "Classic fit denim jeans with stretch fabric";
-        price = 149900; // ₹1499.00
-        imageUrl = "https://example.com/jeans.jpg";
-        category = "clothing";
-        stock = 75;
-      },
-      {
-        id = "prod-5";
-        name = "Leather Wallet";
-        description = "Genuine leather bifold wallet with RFID protection";
-        price = 89900; // ₹899.00
-        imageUrl = "https://example.com/wallet.jpg";
-        category = "accessories";
-        stock = 60;
-      },
-      {
-        id = "prod-6";
-        name = "Sunglasses";
-        description = "UV protection polarized sunglasses";
-        price = 129900; // ₹1299.00
-        imageUrl = "https://example.com/sunglasses.jpg";
-        category = "accessories";
-        stock = 40;
-      },
-      {
-        id = "prod-7";
-        name = "Bluetooth Speaker";
-        description = "Portable waterproof Bluetooth speaker with 12-hour battery";
-        price = 249900; // ₹2499.00
-        imageUrl = "https://example.com/speaker.jpg";
-        category = "electronics";
-        stock = 45;
-      },
-      {
-        id = "prod-8";
-        name = "Running Shoes";
-        description = "Lightweight running shoes with cushioned sole";
-        price = 349900; // ₹3499.00
-        imageUrl = "https://example.com/shoes.jpg";
-        category = "clothing";
-        stock = 55;
-      },
-      {
-        id = "prod-9";
-        name = "Backpack";
-        description = "Durable laptop backpack with multiple compartments";
-        price = 179900; // ₹1799.00
-        imageUrl = "https://example.com/backpack.jpg";
-        category = "accessories";
-        stock = 35;
-      },
-      {
-        id = "prod-10";
-        name = "Wireless Mouse";
-        description = "Ergonomic wireless mouse with adjustable DPI";
-        price = 59900; // ₹599.00
-        imageUrl = "https://example.com/mouse.jpg";
-        category = "electronics";
-        stock = 80;
-      },
-    ];
-
-    for (product in sampleProducts.vals()) {
-      products.add(product.id, product);
-    };
-  };
-
   // Stripe Integration
   public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
@@ -393,11 +291,17 @@ actor {
     };
   };
 
-  public func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+  public shared ({ caller }) func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can check session status");
+    };
     await Stripe.getSessionStatus(getStripeConfig(), sessionId, transform);
   };
 
   public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create checkout sessions");
+    };
     await Stripe.createCheckoutSession(getStripeConfig(), caller, items, successUrl, cancelUrl, transform);
   };
 
