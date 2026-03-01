@@ -1148,6 +1148,35 @@ function ShippingForm({
     }));
   };
 
+  // Map common Nominatim state names to the exact keys used in INDIA_STATES_DISTRICTS
+  const normaliseState = (raw: string): string => {
+    if (!raw) return "";
+    const stateKeys = Object.keys(INDIA_STATES_DISTRICTS);
+    // Exact match first
+    const exact = stateKeys.find((k) => k.toLowerCase() === raw.toLowerCase());
+    if (exact) return exact;
+    // Partial match (e.g. "Telangana" in raw)
+    const partial = stateKeys.find(
+      (k) =>
+        raw.toLowerCase().includes(k.toLowerCase()) ||
+        k.toLowerCase().includes(raw.toLowerCase()),
+    );
+    return partial ?? "";
+  };
+
+  const normaliseDistrict = (state: string, raw: string): string => {
+    if (!state || !raw) return "";
+    const districts = INDIA_STATES_DISTRICTS[state] ?? [];
+    const exact = districts.find((d) => d.toLowerCase() === raw.toLowerCase());
+    if (exact) return exact;
+    const partial = districts.find(
+      (d) =>
+        raw.toLowerCase().includes(d.toLowerCase()) ||
+        d.toLowerCase().includes(raw.toLowerCase()),
+    );
+    return partial ?? "";
+  };
+
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser.");
@@ -1159,25 +1188,47 @@ function ShippingForm({
         try {
           const { latitude, longitude } = pos.coords;
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`,
             { headers: { "Accept-Language": "en" } },
           );
+          if (!res.ok) throw new Error("Reverse geocode failed");
           const data = await res.json();
           const addr = data.address ?? {};
+
           const pincode = addr.postcode?.replace(/\s+/g, "").slice(0, 6) ?? "";
           const place =
             addr.city ||
             addr.town ||
             addr.village ||
+            addr.suburb ||
             addr.county ||
             addr.state_district ||
             "";
+          const rawState = addr.state ?? "";
+          const state = normaliseState(rawState);
+          const rawDistrict =
+            addr.county ||
+            addr.state_district ||
+            addr.city_district ||
+            addr.district ||
+            "";
+          const district = normaliseDistrict(state, rawDistrict);
+          const address =
+            [addr.road, addr.neighbourhood, addr.suburb]
+              .filter(Boolean)
+              .join(", ") || "";
+          const houseNo = addr.house_number ?? "";
+
           setForm((prev) => ({
             ...prev,
-            pincode,
-            place,
+            pincode: pincode || prev.pincode,
+            place: place || prev.place,
+            state: state || prev.state,
+            district: district || prev.district,
+            address: address || prev.address,
+            houseNo: houseNo || prev.houseNo,
           }));
-          toast.success("Location detected and fields auto-filled!");
+          toast.success("Location detected! Fields auto-filled.");
         } catch {
           toast.error(
             "Could not fetch location details. Please fill manually.",
@@ -1186,12 +1237,21 @@ function ShippingForm({
           setLocLoading(false);
         }
       },
-      () => {
-        toast.error(
-          "Location permission denied. Please allow access and try again.",
-        );
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error(
+            "Location permission denied. Please allow access in your browser settings and try again.",
+          );
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          toast.error(
+            "Location unavailable. Please fill the address manually.",
+          );
+        } else {
+          toast.error("Location request timed out. Please try again.");
+        }
         setLocLoading(false);
       },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 
@@ -1372,21 +1432,30 @@ function ShippingForm({
           />
           <motion.button
             type="button"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{
+              scale: 1.04,
+              boxShadow: "0 0 14px oklch(0.78 0.22 75 / 0.45)",
+            }}
+            whileTap={{ scale: 0.96 }}
             onClick={handleUseLocation}
             disabled={locLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-sans font-medium flex-shrink-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-sans font-semibold flex-shrink-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             style={{
-              background: "oklch(0.16 0.04 278)",
-              border: "1px solid oklch(0.78 0.18 75 / 0.35)",
-              color: "oklch(0.78 0.18 75)",
+              background: locLoading
+                ? "oklch(0.20 0.06 278)"
+                : "linear-gradient(135deg, oklch(0.30 0.12 75), oklch(0.22 0.08 278))",
+              border: "1.5px solid oklch(0.78 0.22 75 / 0.6)",
+              color: "oklch(0.92 0.18 75)",
+              boxShadow: "0 0 8px oklch(0.78 0.18 75 / 0.25)",
             }}
           >
             {locLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Navigation className="w-4 h-4" />
+              <Navigation
+                className="w-4 h-4"
+                style={{ color: "oklch(0.88 0.22 75)" }}
+              />
             )}
             {locLoading ? "Detecting..." : "Use My Location"}
           </motion.button>
