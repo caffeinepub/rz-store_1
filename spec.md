@@ -1,31 +1,42 @@
 # RZ Store
 
 ## Current State
-New project. No existing code.
+The checkout page (`CheckoutPage.tsx`) shows only:
+1. Payment method selection (UPI, Card, Net Banking, Google Pay)
+2. Order summary sidebar
+3. Place Order button
+
+There is no shipping address collection before payment.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Welcome Page (Page 1)**: Full-screen animated welcome landing page with "WELCOME TO RZ STORE.IN" headline, animated logo/banner GIF-style animation, animated entrance effects, and a "Enter Store" CTA button.
-- **Store Page (Page 2)**: Product listing grid with sample products, each having an image, name, price, "Add to Cart" and "Buy Now" buttons.
-- **Cart**: Slide-in cart drawer showing added items, quantities, subtotals, and a "Proceed to Checkout" button.
-- **Checkout / Payment Page**: Order summary + payment method selection (Net Banking, Credit/Debit Card, UPI, Google Pay) with animated transitions and a "Place Order" confirmation flow.
-- **Feedback Page**: Customer feedback/review form with star rating, comment field, and submit button. Also displays existing feedback.
-- **Navigation**: Top navbar visible on all pages except welcome, with links to Store, Cart (with item count badge), and Feedback.
-- **Animations**: Page entrance animations, button hover effects, cart badge pulse, and smooth page transitions throughout.
+- A **Shipping Address step** that appears before the payment step in the checkout flow.
+- Fields required:
+  - Full Name (text input)
+  - Place / City (text input)
+  - Address (textarea)
+  - House No (text input)
+  - Pincode (6-digit numeric input)
+  - Location button ("Use My Location") that auto-fills pincode/city via browser Geolocation API
+  - Select State (dropdown -- all Indian states)
+  - Select District (dropdown -- populates based on selected state)
+- Step-based checkout UI: Step 1 = Shipping Address, Step 2 = Payment
+- A "Continue to Payment" button on Step 1 that validates all fields before proceeding
+- On Step 2, show a summary of the filled shipping address above the payment method tabs
+- The `handlePlaceOrder` function includes the shipping address in the order metadata
 
 ### Modify
-- None (new project)
+- `CheckoutPage.tsx` -- wrap existing payment UI in Step 2. Add Step 1 shipping form. Add step indicator (1 → 2) at top.
 
 ### Remove
-- None (new project)
+- Nothing removed
 
 ## Implementation Plan
-1. Backend: Products catalog (list/get), Cart management (add/remove/update), Orders (place order), Feedback (submit/list).
-2. Frontend:
-   - WelcomePage: animated headline, floating particles or shimmer animation, enter button.
-   - StorePage: product grid with add-to-cart and buy-now actions.
-   - CartDrawer: slide-in panel with item list, quantity controls, total, checkout button.
-   - CheckoutPage: payment method tabs (Net Banking, Credit/Debit Card, UPI, Google Pay), form fields per method, order placement.
-   - FeedbackPage: star rating component, comment form, feedback list display.
-   - App routing between pages with animated transitions.
+1. Add INDIA_STATES_DISTRICTS data (all Indian states + districts per state) as a constant in CheckoutPage.tsx
+2. Add ShippingForm component (Step 1) with all required fields, geolocation button, state/district dropdowns
+3. Add step state (`step: 'shipping' | 'payment'`) to CheckoutPage
+4. Render step indicator at the top
+5. On Step 1 "Continue to Payment": validate all fields, then set step to 'payment'
+6. On Step 2: show read-only shipping address summary card, then payment tabs
+7. Pass shippingAddress as part of order placement (include in paymentMethod string or as extra metadata)
